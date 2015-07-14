@@ -50,21 +50,21 @@ class balloonScript():
 		self.gpsLog = open(GPS_LOG_FILE_LOCATION, "a")
 		
 		try:
-			self.fTrpi = open('temp raspi.txt','a')
+			self.fTrpi = open('temp_raspi.txt','a')
 		except:
-			self.fTrpi = open('temp raspi.txt','w')
+			self.fTrpi = open('temp_raspi.txt','w')
 		try:
-			self.fText = open('temp external.txt','a')
+			self.fText = open('temp_external.txt','a')
 		except:
-			self.fText = open('temp external.txt','w')
+			self.fText = open('temp_external.txt','w')
 		try:
-			self.fTbat = open('temp batteries.txt','a')
+			self.fTbat = open('temp_batteries.txt','a')
 		except:
-			self.fTbat = open('temp batteries.txt','w')
+			self.fTbat = open('temp_batteries.txt','w')
 		try:
-			self.fVbat = open('voltage batteries.txt','a')
+			self.fVbat = open('voltage_batteries.txt','a')
 		except:
-			self.fVbat = open('voltage batteries.txt','w')
+			self.fVbat = open('voltage_batteries.txt','w')
 		
 		# Open serial ports
 		self.radioSerialPort = None
@@ -147,7 +147,7 @@ class balloonScript():
 			VTrpi = rawValPiTemp * Vin / maxAD
 			Rrpi = 51800 * ((Vin/VTrpi) - 1)
 			calculatedPiTemp = 1/((.0014721) + (.000237288 * (math.log(Rrpi))) + ((.00000010792 * (math.log(Rrpi))) ** 3)) - 273.15
-			self.fTrpi = open('temp raspi.txt','a')
+			self.fTrpi = open('temp_raspi.txt','a')
 			self.fTrpi.write(str(VTrpi) + ' ' + str(calculatedPiTemp) + '\n')
 			self.fTrpi.close()
 		except:
@@ -158,7 +158,7 @@ class balloonScript():
 			VText = rawValExternalTemp * 3.3 / 255
 			Rext = 51800 * ((Vin/VText) - 1)
 			calculatedExternalTemp = 1/((.0014721) + (.000237288 * (math.log(Rext))) + ((.00000010792 * (math.log(Rext))) ** 3)) - 273.15
-			self.fText = open('temp external.txt','a')
+			self.fText = open('temp_external.txt','a')
 			self.fText.write(str(VText) + ' ' + str(calculatedExternalTemp) + '\n')
 			self.fText.close()
 		except:
@@ -169,7 +169,7 @@ class balloonScript():
 			VTbat = rawValBatteryTemp * 3.3 / 255
 			Rbat = 51800 * ((Vin/VTbat) - 1)
 			calculatedBatteryTemp = 1/((.0014721) + (.000237288 * (math.log(Rbat))) + ((.00000010792 * (math.log(Rbat))) ** 3)) - 273.15
-			self.fTbat = open('temp batteries.txt','a')
+			self.fTbat = open('temp_batteries.txt','a')
 			self.fTbat.write(str(VTbat) + ' ' + str(calculatedBatteryTemp) + '\n')
 			self.fTbat.close()
 		except:
@@ -178,7 +178,7 @@ class balloonScript():
 		try:
 			rawValBatteryVoltage = bus.read_byte_data(address, registerVbat)
 			calculatedVoltageBattery = .05155 * rawValBatteryVoltage + .18659
-			self.fVbat = open('voltage batteries.txt','a')
+			self.fVbat = open('voltage_batteries.txt','a')
 			self.fVbat.write(str(rawValBatteryVoltage) + ' ' + str(calculatedVoltageBattery) + '\n')
 			self.fVbat.close()
 		except:
@@ -224,7 +224,7 @@ class balloonScript():
 				serialInput += self.radioSerialPort.readline()
 			print("Serial Input: " + serialInput)
 		except:
-			print("Unable to open serial port for input on " + self.SERIAL_PORT)
+			print("Unable to open serial port for input on " + RADIO_SERIAL_PORT)
 			
 		return serialInput
 	
@@ -232,13 +232,13 @@ class balloonScript():
 		try:
 			line = self.radioSerialPort.write(RADIO_CALLSIGN + "," + line + "\n")
 		except:
-			print("Unable to write to serial port on " + self.SERIAL_PORT)
+			print("Unable to write to serial port on " + RADIO_SERIAL_PORT)
 	
 	def openRadioSerialPort(self):
 		try:
 			self.radioSerialPort.close()
 		except:
-			print("Unable to close serial port " + self.SERIAL_PORT)
+			print("Unable to close serial port " + RADIO_SERIAL_PORT)
 			
 		try:
 			self.radioSerialPort=serial.Serial(port = RADIO_SERIAL_PORT, baudrate = RADIO_BAUDRATE, timeout = 2)
