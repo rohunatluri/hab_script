@@ -249,7 +249,7 @@ class balloonScript():
 		try:
 			self.gpsSerialPort.close()
 		except:
-			print("Unable to close serial port " + self.SERIAL_PORT)
+			print("Unable to close serial port " + GPS_SERIAL_PORT)
 			
 		try:
 			self.gpsSerialPort=serial.Serial(port = GPS_SERIAL_PORT, baudrate = GPS_BAUDRATE, timeout = 2)
