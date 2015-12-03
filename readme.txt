@@ -4,4 +4,4 @@ This script, intended for execution on a Raspberry Pi 2 Model B running Debian/U
 
 The script was successfully executed in a high altitude balloon launch on July 30th, 2015.
 
-Written by Rohun Atluri, Kenny Friar-Ludwig
+Written by Rohun Atluri, Kenny Fryar-Ludwig

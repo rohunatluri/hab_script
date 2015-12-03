@@ -1,7 +1,9 @@
 """
-Changelog:
-07/14/15 - KFL: Merged balloon script files, removed unused functions
-				Refactored serial input/output. Changes not tested.
+file: balloonScript.py
+
+@brief
+This file initializes the necessary serial ports and enters a run loop
+that checks serial input and outputs various telemetry items
 """
 
 from __future__ import print_function
@@ -13,7 +15,7 @@ import RPi.GPIO as GPIO
 from time import sleep
 
 RADIO_CALLSIGN = "HAB"
-RADIO_SERIAL_PORT = "/dev/ttyS1" # COMX on Windows, /dev/RADIO_SERIAL_PORT on Linux
+RADIO_SERIAL_PORT = "/dev/ttyS1"  # COMX on Windows, /dev/RADIO_SERIAL_PORT on Linux
 RADIO_BAUDRATE = 9600
 
 GPS_LOG_FILE_LOCATION = r"logData/gps_log.txt"
@@ -34,12 +36,12 @@ maxAD = 255
 bus = smbus.SMBus(1)
 address = 0x48
 
-registerTrpi = 0x84 #ADC pin 0
-registerText = 0xc4 #ADC pin 1
-registerTbat = 0x94 #ADC pin 2
-registerVbat = 0xa4 #ADC pin 4
+registerTrpi = 0x84  # ADC pin 0
+registerText = 0xc4  # ADC pin 1
+registerTbat = 0x94  # ADC pin 2
+registerVbat = 0xa4  # ADC pin 4
 
-	
+
 """
 TODO: Refactor serial in and out to match MoGS implementation
 """
@@ -48,7 +50,7 @@ class balloonScript():
 		# Open output files
 		self.scriptLog = open(SCRIPT_LOG_FILE_LOCATION, "a")
 		self.gpsLog = open(GPS_LOG_FILE_LOCATION, "a")
-		
+
 		try:
 			self.fTrpi = open('temp_raspi.txt','a')
 		except:
@@ -65,26 +67,26 @@ class balloonScript():
 			self.fVbat = open('voltage_batteries.txt','a')
 		except:
 			self.fVbat = open('voltage_batteries.txt','w')
-		
+
 		# Open serial ports
 		self.radioSerialPort = None
 		self.gpsSerialPort = None
-		
+
 		self.openRadioSerialPort()
 		self.openGpsSerialPort()
-		
+
 		self.runBalloonScript()
-		
+
 	def runBalloonScript(self):
 		messageToSend = "NULL_MESSAGE"
-		
+
 		while(True):
 			# send
 			try:
 				messageToSend = self.formatData(self.gpsSerialInput(), self.getSensorData())
 				if (messageToSend != "INVALID DATA"):
 					print("Sending: " + messageToSend)
-	
+
 					self.sendSerialOutput(messageToSend)
 				self.gpsLog.writelines(messageToSend)
 				print("Serial: " + messageToSend)
@@ -93,17 +95,17 @@ class balloonScript():
 				messageToSend += self.telemetryFile.readline()
 				print("File: " + messageToSend)
 				self.sendSerialOutput(messageToSend)
-				
+
 			self.scriptLog.write(messageToSend)
-			
+
 			# receive
 			messageReceived = self.radioSerialInput()
-			
+
 			# act on receive
 			self.handleMessage(messageReceived)
-	
+
 			self.scriptLog.writelines(messageReceived)
-		
+
 	def handleMessage(self, message):
 		for line in message:
 			if not ("No messages received." in line):
@@ -114,34 +116,34 @@ class balloonScript():
 					print("Received unknown: {0}".format(line))
 					print("Saving message to file")
 					print("Sending NO ACK message back to GS")
-	
+
 	def formatData(self, gpsString, dataString):
 		finalDataString = "INVALID DATA"
 		currGpsString = ""
-		
+
 		try:
 			gpsSplit = gpsString.split(",")
 			currGpsString = "{},{},{},{}".format(gpsSplit[1][:6],
 												gpsSplit[2],
 												gpsSplit[4],
 												gpsSplit[9])
-	
+
 		except:
 			currGpsString = "0,0,0,0"
-	
+
 		if (dataString == "NO DATA" and gpsSplit == "0,0,0,0"):
 			int ("INVALID DATA STRINGS GIVEN")
 		else:
 			finalDataString = currGpsString + dataString + "\n"
-	
+
 		return finalDataString
-	
+
 	def getSensorData(self):
 		calculatedPiTemp = 0
 		calculatedExternalTemp = 0
 		calculatedBatteryTemp = 0
 		calculatedVoltageBattery = 0
-		
+
 		try:
 			rawValPiTemp = bus.read_byte_data(address, registerTrpi)
 			VTrpi = rawValPiTemp * Vin / maxAD
@@ -152,7 +154,7 @@ class balloonScript():
 			self.fTrpi.close()
 		except:
 			calculatedPiTemp = "NO_VAL"
-		
+
 		try:
 			rawValExternalTemp = bus.read_byte_data(address, registerText)
 			VText = rawValExternalTemp * 3.3 / 255
@@ -163,7 +165,7 @@ class balloonScript():
 			self.fText.close()
 		except:
 			calculatedExternalTemp = "NO_VAL"
-		
+
 		try:
 			rawValBatteryTemp = bus.read_byte_data(address, registerTbat)
 			VTbat = rawValBatteryTemp * 3.3 / 255
@@ -174,7 +176,7 @@ class balloonScript():
 			self.fTbat.close()
 		except:
 			calculatedBatteryTemp = "NO_VAL"
-		
+
 		try:
 			rawValBatteryVoltage = bus.read_byte_data(address, registerVbat)
 			calculatedVoltageBattery = .05155 * rawValBatteryVoltage + .18659
@@ -183,15 +185,15 @@ class balloonScript():
 			self.fVbat.close()
 		except:
 			calculatedVoltageBattery = "NO_VAL"
-	
+
 		return "{},{},{},{}".format(calculatedPiTemp, calculatedExternalTemp, calculatedBatteryTemp, calculatedVoltageBattery)
-			
+
 	def gpsSerialInput(self):
 		messageReceived = "NO_GPS_DATA\n"
 		serialInput = ""
 		retries = 5
 		iterationsToWait = 100
-		
+
 		try:
 			while (retries > 0 and iterationsToWait > 0):
 				if (self.gpsSerialPort.inWaiting() > 0):				# If there's a buffer for us to read
@@ -204,19 +206,19 @@ class balloonScript():
 						retries -= 1
 				else:
 					iterationsToWait -= 1
-			
+
 		except:
 			print("Unable to read serial input: {0} at baud {1}".format(GPS_SERIAL_PORT, GPS_BAUDRATE))
-		
+
 		if (retries > 0 and iterationsToWait > 0):		# We found what we wanted
 			messageReceived = serialInput
-		
+
 		return messageReceived
-	
-	
+
+
 	def radioSerialInput(self):
 		serialInput = ""
-		
+
 		try:
 			if not (self.radioSerialPort.inWaiting()):
 				sleep(1)
@@ -225,37 +227,37 @@ class balloonScript():
 			print("Serial Input: " + serialInput)
 		except:
 			print("Unable to open serial port for input on " + RADIO_SERIAL_PORT)
-			
+
 		return serialInput
-	
+
 	def sendSerialOutput(self, line):
 		try:
 			line = self.radioSerialPort.write(RADIO_CALLSIGN + "," + line + "\n")
 		except:
 			print("Unable to write to serial port on " + RADIO_SERIAL_PORT)
-	
+
 	def openRadioSerialPort(self):
 		try:
 			self.radioSerialPort.close()
 		except:
 			print("Unable to close serial port " + RADIO_SERIAL_PORT)
-			
+
 		try:
 			self.radioSerialPort=serial.Serial(port = RADIO_SERIAL_PORT, baudrate = RADIO_BAUDRATE, timeout = 2)
 		except:
 			print("Unable to open GPS serial port")
-	
+
 	def openGpsSerialPort(self):
 		try:
 			self.gpsSerialPort.close()
 		except:
 			print("Unable to close serial port " + GPS_SERIAL_PORT)
-			
+
 		try:
 			self.gpsSerialPort=serial.Serial(port = GPS_SERIAL_PORT, baudrate = GPS_BAUDRATE, timeout = 2)
 		except:
 			print("Unable to open GPS serial port")
-	
+
 	def releaseBalloon(self):
 		sleep(4)
 		print("Activating balloon release mechanism")
@@ -265,13 +267,13 @@ class balloonScript():
 		self.sendSerialOutput("BRM is released")
 		self.sendSerialOutput("MOCK: BRM Activated")
 	#	GPIO.setmode(GPIO.BOARD)
-	#	
+	#
 	#	GPIO.setup(11, GPIO.OUT)
-	#	
+	#
 	#	GPIO.output(11,0)
-	#	
+	#
 	#	password = raw_input()
-	#	
+	#
 	#	while True:
 	#		if str(password) == 'SSAGhabRELEASE':
 	#			zero = time.time()
@@ -281,17 +283,17 @@ class balloonScript():
 	#		else:
 	#			password = raw_input()
 	#	GPIO.cleanup()
-		
+
 		'''
 		NOTES
-		
+
 		Orange wire must be connected to pin 5 of MOSFET
 		Yellow wire must be connected to pin 7 of MOSFET
 		If raspi pin is high, motor will retract
 		If raspi pin is low, motor will expand
-		
+
 		'''
-	
+
 	def transmitPicture(self):
 	#	Get picture
 	#		ls -> get last item
@@ -299,7 +301,7 @@ class balloonScript():
 	#			Timeout - 10s
 	#		Return to normal broadcast
 		return None
-	
+
 	def reportStateOfHealth(self):
 	#	Diagnose errors
 	#		Check for radios on network
